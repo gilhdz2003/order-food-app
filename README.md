@@ -1,36 +1,330 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Order Food Online - Sistema de Pedidos B2B
 
-## Getting Started
+> **Sistema web de pedidos diarios de comida entre restaurante y clientes corporativos.**
 
-First, run the development server:
+Sistema completo para gestión de pedidos de comida con múltiples roles (Admin, Editor, Empleado, Comanda), autenticación OAuth y email/password, menús diarios publicables, y vista en tiempo real para cocina.
+
+[![Next.js](https://img.shields.io/badge/Next.js-16.1-black)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-2.0-green)](https://supabase.com/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+## 🚀 Stack Tecnológico
+
+- **Next.js 16.1** (App Router + Turbopack)
+- **TypeScript 5.0**
+- **Tailwind CSS + shadcn/ui** (15+ componentes)
+- **Supabase** (Auth, PostgreSQL, RLS, Storage)
+- **Resend** (Emails transaccionales)
+- **Playwright** (E2E Testing)
+
+## 📋 Contenido
+
+- [Características](#características)
+- [Requisitos Previos](#requisitos-previos)
+- [Instalación](#instalación)
+- [Configuración](#configuración)
+- [Ejecutar en Desarrollo](#ejecutar-en-desarrollo)
+- [Testing](#testing)
+- [Estructura del Proyecto](#estructura-del-proyecto)
+- [Troubleshooting](#troubleshooting)
+
+## ✨ Características
+
+### Autenticación
+- ✅ Google OAuth
+- ✅ Email/Password
+- ✅ Auto-creación de usuarios en primera sesión
+- ✅ Protección de rutas por rol con middleware
+- ✅ 4 roles: Admin, Editor Menú, Comanda, Empleado
+
+### Dashboards
+- ✅ **Admin**: Métricas del sistema, gestión de usuarios (CRUD)
+- ✅ **Editor**: Gestión de menús y platillos, publicar/despublicar
+- ⏳ **Empleado**: Ver menú del día, crear pedido, historial
+- ⏳ **Comanda**: Vista tiempo real de pedidos para cocina
+
+### Funcionalidades
+- ✅ Menús diarios con fechas programables
+- ✅ CRUD de platillos por categoría (platillo, bebida, postre)
+- ✅ Control de inventario (cantidades iniciales y disponibles)
+- ✅ Publicación/despublicación de menús
+- ✅ RLS (Row Level Security) en toda la BD
+- ✅ Triggers para validaciones de negocio
+
+## Requisitos Previos
+
+- **Node.js 18+** ([descargar](https://nodejs.org/))
+- **npm** (v9+) o pnpm
+- **Cuenta de Supabase** ([gratis](https://supabase.com/))
+- **Cuenta de Resend** ([para emails](https://resend.com/))
+- **Google Cloud Project** (para OAuth, opcional)
+
+## Instalación
+
+1. **Clonar el repositorio**
+```bash
+git clone https://github.com/your-username/order-food-app.git
+cd order-food-app
+```
+
+2. **Instalar dependencias**
+```bash
+npm install
+# o
+pnpm install
+```
+
+## Configuración
+
+### 1. Configurar Supabase
+
+1. Crear proyecto en [Supabase](https://supabase.com/dashboard)
+2. Ir a **Settings → API**
+3. Copiar las credenciales:
+   - Project URL
+   - **Publishable Key** (nuevo sistema: `sb_publishable_...`)
+   - **Secret Key** (nuevo sistema: `sb_secret_...`)
+
+> **Nota**: Supabase actualizó su sistema de claves. Usa las nuevas claves que comienzan con `sb_publishable_` y `sb_secret_` en lugar de `anon` y `service_role`.
+
+### 2. Configurar Google OAuth (Opcional)
+
+Para autenticación con Google:
+
+1. Ir a [Google Cloud Console](https://console.cloud.google.com/)
+2. Crear OAuth 2.0 credentials
+3. **Authorized redirect URIs**:
+   ```
+   https://YOUR_PROJECT.supabase.co/auth/v1/callback
+   ```
+4. Copiar Client ID y Client Secret
+5. En Supabase: **Authentication → Providers → Google**
+6. Pegar credenciales y habilitar provider
+
+### 3. Configurar Resend (Opcional)
+
+Para envío de emails:
+
+1. Crear cuenta en [Resend](https://resend.com/)
+2. Obtener API Key
+3. Verificar dominio de envío
+
+### 4. Configurar variables de entorno
+
+Crear archivo `.env.local`:
+
+```bash
+cp .env.example .env.local
+```
+
+Editar `.env.local` con tus credenciales:
+
+```env
+# Supabase (Nuevo sistema de claves 2026)
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_xxxxxxxxxxxxx
+SUPABASE_SERVICE_ROLE_KEY=sb_secret_xxxxxxxxxxxxx
+
+# Resend (Email service)
+RESEND_API_KEY=re_xxxxxxxxxxxxx
+RESEND_FROM_EMAIL=noreply@yourdomain.com
+
+# Application
+NEXT_PUBLIC_APP_URL=http://localhost:3030
+NEXT_PUBLIC_APP_TIMEZONE=America/Mexico_City
+PORT=3030
+
+# Environment
+NODE_ENV=development
+```
+
+### 5. Ejecutar migraciones de base de datos
+
+Ir al **SQL Editor** de Supabase y ejecutar en orden:
+
+1. `supabase/migrations/001_initial_schema.sql` - Tablas y relaciones
+2. `supabase/migrations/002_rls_policies.sql` - Políticas de seguridad
+3. `supabase/migrations/003_functions_triggers.sql` - Funciones y triggers
+4. `supabase/migrations/004_seed_data.sql` - Datos de prueba (opcional)
+
+### 6. Crear usuarios de prueba en Supabase Auth
+
+En **Authentication → Users**:
+
+| Email | Rol | Password |
+|-------|-----|----------|
+| admin@demo.com | Admin | (configurar en Supabase) |
+| editor@demo.com | Editor Menú | (configurar en Supabase) |
+| comanda@demo.com | Comanda | (configurar en Supabase) |
+| juan.perez@demo.com | Empleado | (configurar en Supabase) |
+
+> **Nota**: Los usuarios se crearán automáticamente en la tabla `users` en su primer login (vía email/password) usando el service_role key para bypass de RLS.
+
+## Ejecutar en Desarrollo
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abrir [http://localhost:3030](http://localhost:3030)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Testing
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run test:e2e          # Ejecutar todos los tests
+npm run test:e2e:ui       # UI mode con Playwright
+npm run test:e2e:headed   # Con navegador visible
+npm run test:e2e:debug    # Debug mode
+```
 
-## Learn More
+## Estructura del Proyecto
 
-To learn more about Next.js, take a look at the following resources:
+```
+order-food-app/
+├── .github/workshots/          # CI/CD
+├── e2e/                        # Playwright E2E tests
+├── public/                     # Static assets
+├── src/
+│   ├── app/                    # Next.js App Router
+│   │   ├── (auth)/            # Rutas de autenticación
+│   │   ├── (dashboard)/       # Rutas protegidas
+│   │   ├── api/               # API routes
+│   │   └── layout.tsx         # Layout raíz
+│   ├── components/            # React components
+│   │   └── ui/                # shadcn/ui components
+│   ├── lib/                   # Utilities
+│   │   └── supabase/          # Supabase client
+│   ├── hooks/                 # Custom React hooks
+│   └── types/                 # TypeScript types
+├── supabase/
+│   └── migrations/            # SQL migrations
+└── .env.local                 # Environment variables (gitignore)
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Scripts Disponibles
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run dev              # Desarrollo en puerto 3030
+npm run build            # Build de producción
+npm run start            # Servidor de producción
+npm run lint             # ESLint check
+npm run test:e2e         # Tests E2E completos
+```
 
-## Deploy on Vercel
+## 📊 Progreso del Proyecto
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### ✅ Completado
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Sprint 0: Setup Inicial** (100%)
+- ✅ Next.js 16 con App Router + Turbopack
+- ✅ TypeScript + Tailwind CSS + shadcn/ui
+- ✅ Supabase client con RLS completo
+- ✅ Playwright configurado
+- ✅ Estructura de directorios
+
+**Sprint 1: Autenticación** (100%)
+- ✅ Google OAuth
+- ✅ Email/Password authentication
+- ✅ Auto-creación de usuarios con service_role
+- ✅ Middleware de protección por rol
+- ✅ Landing page pública
+- ✅ Login page con toggle OAuth/Email
+
+**Sprint 2: Dashboards Admin + Editor** (100%)
+- ✅ Dashboard Admin con métricas
+- ✅ Gestión de usuarios (CRUD)
+- ✅ Dashboard Editor especializado
+- ✅ CRUD de menús
+- ✅ CRUD de platillos
+- ✅ Publicar/despublicar menús
+
+### ⏳ Próximos Sprints
+
+**Sprint 3: Dashboard Empleado + Pedidos** (0%)
+- Ver menú del día
+- Crear pedido con selección de platillos
+- Validación de inventario
+- Historial de pedidos
+- Editar pedido (deadline 11:30 AM)
+
+**Sprint 4: Dashboard Comanda** (0%)
+- Vista tiempo real de pedidos
+- Cambiar estados (preparando, listo, entregado)
+- Filtros por empresa
+- Notificaciones
+
+## 🔐 Roles y Permisos
+
+| Rol | Dashboards | Permisos |
+|-----|------------|----------|
+| **admin** | Admin, Editor, Empleado, Comanda | Gestión completa del sistema |
+| **editor_menu** | Editor | Gestión de menús y platillos |
+| **comanda_user** | Comanda | Vista de pedidos de cocina |
+| **empleado** | Empleado | Crear sus propios pedidos |
+
+## 🐛 Troubleshooting
+
+### Error: "infinite recursion detected in policy for relation 'users'"
+
+**Causa**: Intentando crear usuario con cliente normal (anon key) que tiene RLS activo.
+
+**Solución**: Asegúrate de estar usando `createAdminClient()` con service_role key para operaciones de creación de usuarios:
+
+```typescript
+const supabaseAdmin = await createAdminClient();
+// Bypass RLS con service_role key
+```
+
+### Error: "Usuario no encontrado"
+
+**Causa**: El usuario se autenticó pero no existe en la tabla `users`.
+
+**Solución**: El sistema ahora auto-crea usuarios. Si persiste, verifica que:
+1. `SUPABASE_SERVICE_ROLE_KEY` esté configurada en `.env.local`
+2. La key tenga el prefijo `sb_secret_` (nuevo sistema)
+3. El usuario exista en Supabase Auth primero
+
+### Error: "searchParams is a Promise"
+
+**Causa**: Next.js 16 cambió searchParams a Promise.
+
+**Solución**: Usar `React.use()` para unwrap:
+
+```typescript
+const resolvedParams = use(searchParams);
+```
+
+### Login con Google no redirige
+
+**Verificar**:
+1. OAuth provider habilitado en Supabase
+2. Redirect URI correcta en Google Cloud Console
+3. Callback URL configurada: `https://YOUR_PROJECT.supabase.co/auth/v1/callback`
+
+## 📚 Documentación Adicional
+
+- [Plan Maestro 10 Semanas](../plan_maestro.md) - Planificación completa
+- [PRD](../PRD_Sistema_Pedidos_Restaurante.md) - Especificación de requisitos
+- [Guía de Configuración Rápida](./GUIA_CONFIGURACION_RAPIDA.md) - Setup paso a paso
+- [CLAUDE.md](../CLAUDE.md) - Contexto del proyecto (Sistema KTM)
+
+## 🤝 Contribuir
+
+Contribuciones son bienvenidas. Por favor:
+
+1. Fork el proyecto
+2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request
+
+## 📄 Licencia
+
+Distribuido bajo la licencia MIT. Ver `LICENSE` para más información.
+
+---
+
+**Versión**: 0.3.0 (Sprint 2 completado - Fix RLS infinite recursion)
+**Última actualización**: Febrero 2, 2026
+**Estado**: Desarrollo activo 🚧
