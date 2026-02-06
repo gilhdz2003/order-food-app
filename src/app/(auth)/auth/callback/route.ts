@@ -31,7 +31,8 @@ export async function GET(request: NextRequest) {
       // Create or update user in database
       const { error: upsertError } = await upsertUser(
         data.user.email!,
-        data.user.user_metadata?.full_name || data.user.user_metadata?.name
+        data.user.user_metadata?.full_name || data.user.user_metadata?.name,
+        data.user.id
       );
 
       if (upsertError) {

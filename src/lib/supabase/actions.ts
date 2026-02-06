@@ -57,49 +57,69 @@ export async function signInWithEmail(email: string, password: string) {
     return { error: 'Error al obtener el usuario de autenticación.' };
   }
 
-  // Check if user exists in our users table
-  const { data: user, error: userError } = await supabase
+  // Use admin client to bypass RLS when checking user
+  const supabaseAdmin = await createAdminClient();
+
+  // First, try to find user by ID (most common case)
+  const { data: userById } = await supabaseAdmin
+    .from('users')
+    .select('*')
+    .eq('id', authUserId)
+    .single();
+
+  if (userById) {
+    if (!userById.is_active) {
+      return { error: 'Tu cuenta está inactiva. Contacta al administrador.' };
+    }
+    revalidatePath('/', 'layout');
+    return { data, user: userById };
+  }
+
+  // User not found by ID, check by email (in case IDs don't match from seed data)
+  const { data: userByEmail } = await supabaseAdmin
     .from('users')
     .select('*')
     .eq('email', email)
     .single();
 
-  if (userError || !user) {
-    // User doesn't exist in users table - create it using service_role (bypass RLS)
-    console.log('Usuario no encontrado en tabla users, creando automáticamente...');
-
-    // Create a client with service_role to bypass RLS
-    const supabaseAdmin = await createAdminClient();
-
-    const { data: newUser, error: createError } = await supabaseAdmin
+  if (userByEmail) {
+    // Update the user ID to match auth.users
+    await supabaseAdmin
       .from('users')
-      .insert({
-        id: authUserId, // Use the same ID as auth.users
-        email,
-        full_name: data.user?.user_metadata?.full_name || data.user?.user_metadata?.name || email.split('@')[0],
-        phone: data.user?.user_metadata?.phone || null,
-        role: 'empleado', // Default role
-        company_id: null, // Admin needs to assign
-        is_active: true,
-      })
-      .select()
-      .single();
+      .update({ id: authUserId })
+      .eq('email', email);
 
-    if (createError || !newUser) {
-      console.error('Error creating user:', createError);
-      return { error: 'Error al crear usuario. Contacta al administrador.' };
+    if (!userByEmail.is_active) {
+      return { error: 'Tu cuenta está inactiva. Contacta al administrador.' };
     }
-
     revalidatePath('/', 'layout');
-    return { data, user: newUser };
+    return { data, user: { ...userByEmail, id: authUserId } };
   }
 
-  if (!user.is_active) {
-    return { error: 'Tu cuenta está inactiva. Contacta al administrador.' };
+  // User doesn't exist - create it using service_role (bypass RLS)
+  console.log('Usuario no encontrado en tabla users, creando automáticamente...');
+
+  const { data: newUser, error: createError } = await supabaseAdmin
+    .from('users')
+    .insert({
+      id: authUserId, // Use the same ID as auth.users
+      email,
+      full_name: data.user?.user_metadata?.full_name || data.user?.user_metadata?.name || email.split('@')[0],
+      phone: data.user?.user_metadata?.phone || null,
+      role: 'empleado', // Default role
+      company_id: null, // Admin needs to assign
+      is_active: true,
+    })
+    .select()
+    .single();
+
+  if (createError || !newUser) {
+    console.error('Error creating user:', createError);
+    return { error: 'Error al crear usuario. Contacta al administrador.' };
   }
 
   revalidatePath('/', 'layout');
-  return { data, user };
+  return { data, user: newUser };
 }
 
 /**
@@ -133,7 +153,10 @@ export async function getCurrentUser(): Promise<User | null> {
     return null;
   }
 
-  const { data: user, error } = await supabase
+  // Use admin client to bypass RLS when fetching user
+  const supabaseAdmin = await createAdminClient();
+
+  const { data: user, error } = await supabaseAdmin
     .from('users')
     .select(`
       *,
@@ -167,23 +190,25 @@ export async function getSession() {
  * Create or update user after OAuth callback
  * This is called by the auth callback route
  */
-export async function upsertUser(email: string, fullName?: string) {
-  const supabase = await createClient();
+export async function upsertUser(email: string, fullName?: string, authUserId?: string) {
+  // Use admin client to bypass RLS
+  const supabaseAdmin = await createAdminClient();
 
-  // Check if user exists
-  const { data: existingUser } = await supabase
+  // Check if user exists by email
+  const { data: existingUser } = await supabaseAdmin
     .from('users')
     .select('*')
     .eq('email', email)
     .single();
 
   if (existingUser) {
-    // Update user
-    const { data: updatedUser, error } = await supabase
+    // Update user and sync ID if provided
+    const { data: updatedUser, error } = await supabaseAdmin
       .from('users')
       .update({
         full_name: fullName || existingUser.full_name,
         updated_at: new Date().toISOString(),
+        ...(authUserId && { id: authUserId }),
       })
       .eq('email', email)
       .select()
@@ -199,9 +224,10 @@ export async function upsertUser(email: string, fullName?: string) {
 
   // Create new user (default role: empleado)
   // Note: Company needs to be set by admin
-  const { data: newUser, error } = await supabase
+  const { data: newUser, error } = await supabaseAdmin
     .from('users')
     .insert({
+      id: authUserId,
       email,
       full_name: fullName || null,
       role: 'empleado',

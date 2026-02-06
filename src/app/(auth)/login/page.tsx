@@ -57,7 +57,8 @@ export default function LoginPage({
     }
 
     if (data) {
-      window.location.href = resolvedParams.redirect || '/dashboard';
+      // Redirect to root and let middleware handle role-based redirection
+      window.location.href = resolvedParams.redirect || '/';
     }
   }
 

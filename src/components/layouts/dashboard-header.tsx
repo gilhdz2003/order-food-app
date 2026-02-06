@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 interface DashboardHeaderProps {
-  user: User;
+  user: User | null;
   title: string;
   subtitle?: string;
   actions?: React.ReactNode;
@@ -26,7 +26,7 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({ user, title, subtitle, actions }: DashboardHeaderProps) {
   const getInitials = (name: string | null) => {
-    if (!name) return user.email.charAt(0).toUpperCase();
+    if (!name) return user?.email?.charAt(0).toUpperCase() || 'U';
     return name
       .split(' ')
       .map((n) => n[0])
@@ -44,6 +44,19 @@ export function DashboardHeader({ user, title, subtitle, actions }: DashboardHea
     };
     return roles[role] || role;
   };
+
+  if (!user) {
+    return (
+      <header className="border-b bg-white">
+        <div className="flex h-16 items-center justify-between px-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+            {subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="border-b bg-white">

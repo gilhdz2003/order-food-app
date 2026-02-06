@@ -7,17 +7,8 @@
  */
 
 import { createServerClient } from '@supabase/ssr';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { NextResponse, type NextRequest } from 'next/server';
-
-/**
- * Protected routes that require authentication
- */
-const PROTECTED_ROUTES = ['/admin', '/editor', '/employee', '/comanda'];
-
-/**
- * Public routes that don't require authentication
- */
-const PUBLIC_ROUTES = ['/', '/login', '/auth/callback'];
 
 /**
  * Route to role mapping
@@ -29,15 +20,37 @@ const ROLE_ROUTES: Record<string, string[]> = {
   '/comanda': ['comanda_user', 'admin'],
 };
 
+// Admin client singleton (created once, reused)
+let adminClientInstance: ReturnType<typeof createSupabaseClient> | null = null;
+
+/**
+ * Get admin client for RLS bypass operations
+ */
+function getAdminClient() {
+  if (!adminClientInstance) {
+    adminClientInstance = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      }
+    );
+  }
+  return adminClientInstance;
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow public routes
-  if (PUBLIC_ROUTES.some(route => pathname.startsWith(route))) {
+  // Skip auth/callback (OAuth handler)
+  if (pathname.startsWith('/auth/callback')) {
     return NextResponse.next();
   }
 
-  // Create Supabase client
+  // Create Supabase client for auth check
   const response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -62,33 +75,57 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Get user session
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  // Get user session using getUser() for security (validates with server)
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-  // Redirect to login if no session
-  if (!session) {
+  // Special handling for home page (/)
+  if (pathname === '/') {
+    if (user && !userError) {
+      // Use admin client to bypass RLS when checking user role
+      const adminClient = getAdminClient();
+      const { data: userData } = await adminClient
+        .from('users')
+        .select('role, is_active')
+        .eq('id', user.id)
+        .single();
+
+      if (userData && userData.is_active) {
+        const dashboardRoute = getDashboardForRole(userData.role);
+        return NextResponse.redirect(new URL(dashboardRoute, request.url));
+      }
+    }
+    // No session or inactive user - show landing page
+    return NextResponse.next();
+  }
+
+  // Allow login page without auth
+  if (pathname === '/login') {
+    return NextResponse.next();
+  }
+
+  // Redirect to login if no session (for protected routes)
+  if (!user || userError) {
     const redirectUrl = new URL('/login', request.url);
     redirectUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(redirectUrl);
   }
 
-  // Get user role from database
-  const { data: user } = await supabase
+  // Use admin client to bypass RLS when getting user role
+  const adminClient = getAdminClient();
+  const { data: userData } = await adminClient
     .from('users')
     .select('role, is_active')
-    .eq('id', session.user.id)
+    .eq('id', user.id)
     .single();
 
   // Redirect to login if user not found in database
-  if (!user) {
+  if (!userData) {
     const redirectUrl = new URL('/login', request.url);
     return NextResponse.redirect(redirectUrl);
   }
 
   // Redirect to login if user is not active
-  if (!user.is_active) {
+  if (!userData.is_active) {
     const redirectUrl = new URL('/login', request.url);
     redirectUrl.searchParams.set('error', 'account_inactive');
     return NextResponse.redirect(redirectUrl);
@@ -96,9 +133,9 @@ export async function middleware(request: NextRequest) {
 
   // Check role-based access
   for (const [route, allowedRoles] of Object.entries(ROLE_ROUTES)) {
-    if (pathname.startsWith(route) && !allowedRoles.includes(user.role)) {
+    if (pathname.startsWith(route) && !allowedRoles.includes(userData.role)) {
       // User doesn't have required role, redirect to their dashboard
-      const dashboardRoute = getDashboardForRole(user.role);
+      const dashboardRoute = getDashboardForRole(userData.role);
       return NextResponse.redirect(new URL(dashboardRoute, request.url));
     }
   }
