@@ -15,14 +15,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/supabase/actions';
-import type { User, UserRole } from '@/types';
+import type { UserRole } from '@/types';
 import Link from 'next/link';
 
 export default async function AdminUsersPage() {
   const user = await getCurrentUser();
-  const supabase = await createClient();
+  // Use admin client to bypass RLS and see ALL users
+  const supabase = await createAdminClient();
 
   // Fetch all users with company information
   const { data: users } = await supabase
