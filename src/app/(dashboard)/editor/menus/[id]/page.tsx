@@ -23,11 +23,12 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Link from 'next/link';
 
-export default async function EditMenuPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default async function EditMenuPage({ params }: PageProps) {
+  const { id } = await params;
   const user = await getCurrentUser();
   const supabase = await createAdminClient();
 
@@ -38,7 +39,7 @@ export default async function EditMenuPage({
       *,
       dishes(*)
     `)
-    .eq('id', params.id)
+    .eq('id', id)
     .single();
 
   if (error || !menu) {
@@ -59,7 +60,7 @@ export default async function EditMenuPage({
     const imageUrl = formData.get('image_url') as string;
 
     const { error } = await supabase.from('dishes').insert({
-      menu_id: params.id,
+      menu_id: id,
       name,
       description: description || null,
       price,
@@ -71,10 +72,10 @@ export default async function EditMenuPage({
 
     if (error) {
       console.error('Error adding dish:', error);
-      redirect(`/editor/menus/${params.id}?error=add_failed`);
+      redirect(`/editor/menus/${id}?error=add_failed`);
     }
 
-    redirect(`/editor/menus/${params.id}?success=dish_added`);
+    redirect(`/editor/menus/${id}?success=dish_added`);
   }
 
   // Server action to delete dish
@@ -87,10 +88,10 @@ export default async function EditMenuPage({
 
     if (error) {
       console.error('Error deleting dish:', error);
-      redirect(`/editor/menus/${params.id}?error=delete_failed`);
+      redirect(`/editor/menus/${id}?error=delete_failed`);
     }
 
-    redirect(`/editor/menus/${params.id}?success=dish_deleted`);
+    redirect(`/editor/menus/${id}?success=dish_deleted`);
   }
 
   // Server action to publish/unpublish menu
@@ -105,14 +106,14 @@ export default async function EditMenuPage({
         is_published: !menu.is_published,
         published_at: !menu.is_published ? new Date().toISOString() : null,
       })
-      .eq('id', params.id);
+      .eq('id', id);
 
     if (error) {
       console.error('Error toggling publish:', error);
-      redirect(`/editor/menus/${params.id}?error=publish_failed`);
+      redirect(`/editor/menus/${id}?error=publish_failed`);
     }
 
-    redirect(`/editor/menus/${params.id}?success=publish_toggled`);
+    redirect(`/editor/menus/${id}?success=publish_toggled`);
   }
 
   const categoryLabels: Record<DishCategory, string> = {
