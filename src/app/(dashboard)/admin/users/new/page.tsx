@@ -19,6 +19,7 @@ import {
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/supabase/actions';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import type { UserRole } from '@/types';
 
 export default async function NewUserPage() {
@@ -157,8 +158,8 @@ export default async function NewUserPage() {
               </div>
 
               <div className="flex justify-end space-x-4 pt-4 border-t">
-                <Button type="button" variant="outline" onClick={() => window.history.back()}>
-                  Cancelar
+                <Button type="button" variant="outline" asChild>
+                  <Link href="/admin/users">Cancelar</Link>
                 </Button>
                 <Button type="submit">Crear Usuario</Button>
               </div>

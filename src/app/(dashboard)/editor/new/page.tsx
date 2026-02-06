@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { getCurrentUser } from '@/lib/supabase/actions';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 
 export default async function NewMenuPage() {
   const user = await getCurrentUser();
@@ -102,8 +103,8 @@ export default async function NewMenuPage() {
               </div>
 
               <div className="flex justify-end space-x-4 pt-4 border-t">
-                <Button type="button" variant="outline" onClick={() => window.history.back()}>
-                  Cancelar
+                <Button type="button" variant="outline" asChild>
+                  <Link href="/editor">Cancelar</Link>
                 </Button>
                 <Button type="submit">Crear Menú</Button>
               </div>

@@ -64,13 +64,16 @@ export default async function EditUserPage({ params }: PageProps) {
     const role = formData.get('role') as UserRole;
     const isActive = formData.get('is_active') === 'true';
 
+    // Convert "none" to null for company_id
+    const companyToSet = companyId === 'none' ? null : companyId;
+
     // Update user
     const { error } = await supabaseAdmin
       .from('users')
       .update({
         full_name: fullName || null,
         phone: phone || null,
-        company_id: companyId || null,
+        company_id: companyToSet,
         role,
         is_active: isActive,
       })
@@ -166,12 +169,12 @@ export default async function EditUserPage({ params }: PageProps) {
 
               <div className="space-y-2">
                 <Label htmlFor="company_id">Empresa</Label>
-                <Select name="company_id" defaultValue={targetUser.company_id || ''}>
+                <Select name="company_id" defaultValue={targetUser.company_id || 'none'}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecciona una empresa" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Sin empresa</SelectItem>
+                    <SelectItem value="none">Sin empresa</SelectItem>
                     {companies?.map((company) => (
                       <SelectItem key={company.id} value={company.id}>
                         {company.name}
