@@ -8,29 +8,55 @@ import { Page, Locator } from '@playwright/test';
 
 /**
  * Demo user credentials for testing
+ * Note: These users exist in Supabase Auth with password: Demo123
  */
 export const DEMO_USERS = {
   admin: {
     email: 'admin@demo.com',
-    password: 'Demo123!', // Note: Set this in Supabase Auth
+    password: 'Demo123',
     role: 'admin',
   },
   editor: {
     email: 'editor@demo.com',
-    password: 'Demo123!',
+    password: 'Demo123',
     role: 'editor_menu',
   },
   comanda: {
     email: 'comanda@demo.com',
-    password: 'Demo123!',
+    password: 'Demo123',
     role: 'comanda_user',
   },
   employee: {
     email: 'juan.perez@demo.com',
-    password: 'Demo123!',
+    password: 'Demo123',
     role: 'empleado',
   },
 };
+
+/**
+ * Login with email and password (internal helper)
+ * This handles the login flow where email form is hidden by default
+ */
+export async function loginWithEmail(page: Page, email: string, password: string): Promise<void> {
+  await page.goto('/login');
+
+  // First, click the button to show email login form
+  const emailLoginButton = page.locator('button:has-text("Iniciar sesión con email")');
+  await emailLoginButton.click();
+
+  // Wait for form to appear
+  await page.waitForSelector('#email', { timeout: 5000 });
+
+  // Fill credentials using id selectors
+  await page.fill('#email', email);
+  await page.fill('#password', password);
+
+  // Submit form
+  await page.click('button[type="submit"]');
+
+  // Wait for navigation based on role
+  await page.waitForLoadState('load', { timeout: 15000 });
+}
 
 /**
  * Login with OAuth (Google)

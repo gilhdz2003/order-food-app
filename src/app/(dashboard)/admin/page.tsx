@@ -6,12 +6,13 @@
 
 import { DashboardHeader } from '@/components/layouts/dashboard-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/supabase/actions';
 
 export default async function AdminOverviewPage() {
   const user = await getCurrentUser();
-  const supabase = await createClient();
+  // Use admin client to bypass RLS and get accurate global metrics
+  const supabase = await createAdminClient();
 
   // Fetch statistics
   const [

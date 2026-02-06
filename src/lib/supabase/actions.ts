@@ -283,3 +283,47 @@ export async function requireRole(requiredRoles: string[]): Promise<User> {
 
   return user;
 }
+
+// ============================================================================
+// MENU SERVER ACTIONS
+// ============================================================================
+
+/**
+ * Publish a menu
+ */
+export async function publishMenu(menuId: string) {
+  const supabase = await createAdminClient();
+
+  const { error } = await supabase
+    .from('menus')
+    .update({ is_published: true, published_at: new Date().toISOString() })
+    .eq('id', menuId);
+
+  if (error) {
+    console.error('Error publishing menu:', error);
+    return { error: error.message };
+  }
+
+  revalidatePath('/editor', 'page');
+  return { success: true };
+}
+
+/**
+ * Unpublish a menu
+ */
+export async function unpublishMenu(menuId: string) {
+  const supabase = await createAdminClient();
+
+  const { error } = await supabase
+    .from('menus')
+    .update({ is_published: false, published_at: null })
+    .eq('id', menuId);
+
+  if (error) {
+    console.error('Error unpublishing menu:', error);
+    return { error: error.message };
+  }
+
+  revalidatePath('/editor', 'page');
+  return { success: true };
+}

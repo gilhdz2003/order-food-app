@@ -8,6 +8,7 @@ import { DashboardHeader } from '@/components/layouts/dashboard-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { MenuPublishButton } from '@/components/menus/menu-publish-button';
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/supabase/actions';
 import Link from 'next/link';
@@ -103,39 +104,10 @@ export default async function EditorMenusPage() {
                         </Button>
                       </Link>
 
-                      {menu.is_published ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-orange-600 hover:text-orange-700"
-                          onClick={async () => {
-                            'use server';
-                            const supabase = await createClient();
-                            await supabase
-                              .from('menus')
-                              .update({ is_published: false, published_at: null })
-                              .eq('id', menu.id);
-                          }}
-                        >
-                          Despublicar
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-green-600 hover:text-green-700"
-                          onClick={async () => {
-                            'use server';
-                            const supabase = await createClient();
-                            await supabase
-                              .from('menus')
-                              .update({ is_published: true, published_at: new Date().toISOString() })
-                              .eq('id', menu.id);
-                          }}
-                        >
-                          Publicar
-                        </Button>
-                      )}
+                      <MenuPublishButton
+                        menuId={menu.id}
+                        isPublished={menu.is_published}
+                      />
                     </div>
                   </div>
                 </CardContent>
