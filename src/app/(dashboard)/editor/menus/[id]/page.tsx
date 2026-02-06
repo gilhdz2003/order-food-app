@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/lib/supabase/actions';
 import { redirect, notFound } from 'next/navigation';
 import type { DishCategory } from '@/types';
@@ -29,7 +29,7 @@ export default async function EditMenuPage({
   params: { id: string };
 }) {
   const user = await getCurrentUser();
-  const supabase = await createClient();
+  const supabase = await createAdminClient();
 
   // Fetch menu with dishes
   const { data: menu, error } = await supabase
@@ -49,7 +49,7 @@ export default async function EditMenuPage({
   async function addDish(formData: FormData) {
     'use server';
 
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
 
     const name = formData.get('name') as string;
     const description = formData.get('description') as string;
@@ -81,7 +81,7 @@ export default async function EditMenuPage({
   async function deleteDish(dishId: string) {
     'use server';
 
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
 
     const { error } = await supabase.from('dishes').delete().eq('id', dishId);
 
@@ -97,7 +97,7 @@ export default async function EditMenuPage({
   async function togglePublish() {
     'use server';
 
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
 
     const { error } = await supabase
       .from('menus')

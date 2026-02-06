@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { getCurrentUser } from '@/lib/supabase/actions';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 
@@ -20,7 +20,7 @@ export default async function NewMenuPage() {
   async function createMenu(formData: FormData) {
     'use server';
 
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     const menuDate = formData.get('menu_date') as string;
 
     if (!menuDate) {
@@ -35,7 +35,7 @@ export default async function NewMenuPage() {
       .single();
 
     if (existingMenu) {
-      redirect(`/editor/menus/${existingMenu.id}?error=already_exists`);
+      redirect(`/editor/menus/${existingMenu.id}?info=already_exists`);
     }
 
     // Create menu
@@ -51,7 +51,7 @@ export default async function NewMenuPage() {
 
     if (error) {
       console.error('Error creating menu:', error);
-      redirect('/editor/new?error=create_failed');
+      redirect('/editor/new?error=' + encodeURIComponent(error.message));
     }
 
     redirect(`/editor/menus/${menu.id}`);
