@@ -229,12 +229,75 @@ export interface Database {
  * Application-specific types extending the database types
  */
 
-export interface User extends Database['public']['Tables']['users']['Row'] {}
-export interface Company extends Database['public']['Tables']['companies']['Row'] {}
-export interface Menu extends Database['public']['Tables']['menus']['Row'] {}
-export interface Dish extends Database['public']['Tables']['dishes']['Row'] {}
-export interface Order extends Database['public']['Tables']['orders']['Row'] {}
-export interface OrderItem extends Database['public']['Tables']['order_items']['Row'] {}
+// Explicit type definitions to avoid TypeScript inference issues
+export interface User {
+  id: string;
+  email: string;
+  full_name: string | null;
+  phone: string | null;
+  company_id: string | null;
+  role: UserRole;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  company?: Company | null;
+}
+
+export interface Company {
+  id: string;
+  name: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface Menu {
+  id: string;
+  menu_date: string;
+  is_published: boolean;
+  published_at: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  dishes?: Dish[];
+}
+
+export interface Dish {
+  id: string;
+  menu_id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  image_url: string | null;
+  category: DishCategory;
+  initial_quantity: number;
+  available_quantity: number;
+  created_at: string;
+  updated_at: string;
+  menu?: Menu;
+}
+
+export interface Order {
+  id: string;
+  order_code: string;
+  user_id: string;
+  menu_id: string;
+  company_id: string;
+  status: OrderStatus;
+  total_amount: number;
+  can_edit: boolean;
+  created_at: string;
+  updated_at: string;
+  delivered_at: string | null;
+}
+
+export interface OrderItem {
+  id: string;
+  order_id: string;
+  dish_id: string;
+  quantity: number;
+  price_at_order: number;
+  created_at: string;
+}
 
 /**
  * Extended types with relations

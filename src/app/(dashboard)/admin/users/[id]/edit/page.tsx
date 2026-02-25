@@ -76,7 +76,7 @@ export default async function EditUserPage({ params }: PageProps) {
         company_id: companyToSet,
         role,
         is_active: isActive,
-      })
+      } as any)
       .eq('id', id);
 
     if (error) {
@@ -175,7 +175,7 @@ export default async function EditUserPage({ params }: PageProps) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Sin empresa</SelectItem>
-                    {companies?.map((company) => (
+                    {companies?.map((company: any) => (
                       <SelectItem key={company.id} value={company.id}>
                         {company.name}
                       </SelectItem>

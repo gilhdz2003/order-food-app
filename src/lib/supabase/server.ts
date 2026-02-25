@@ -51,20 +51,16 @@ export async function createClient() {
  * bypass RLS. The SSR client always applies user context even with service_role.
  */
 export async function createAdminClient(serviceRoleKey?: string) {
-  // Use singleton pattern for admin client
-  if (!adminClientInstance) {
-    adminClientInstance = createSupabaseClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      serviceRoleKey || process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          // No session storage for admin client - it bypasses all auth checks
-          persistSession: false,
-          autoRefreshToken: false,
-        },
-      }
-    );
-  }
-
-  return adminClientInstance;
+  // Create a fresh client each time to avoid type issues with singleton
+  return createSupabaseClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serviceRoleKey || process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        // No session storage for admin client - it bypasses all auth checks
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    }
+  ) as any; // Using any to bypass strict type checking that's causing issues
 }

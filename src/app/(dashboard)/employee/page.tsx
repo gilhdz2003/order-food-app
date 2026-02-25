@@ -7,11 +7,14 @@
 import { DashboardHeader } from '@/components/layouts/dashboard-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { getCurrentUser } from '@/lib/supabase/actions';
-import { UtensilsCrossed, Clock, Calendar } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { getCurrentUser, getTodayOrder } from '@/lib/supabase/actions';
+import { UtensilsCrossed, Clock, Calendar, ShoppingCart, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 
 export default async function EmployeeDashboard() {
   const user = await getCurrentUser();
+  const todayOrder = await getTodayOrder();
 
   return (
     <div className="space-y-6">
@@ -36,6 +39,24 @@ export default async function EmployeeDashboard() {
         </CardContent>
       </Card>
 
+      {/* Today's Order Alert */}
+      {todayOrder && (
+        <Alert className="border-green-200 bg-green-50">
+          <ShoppingCart className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-sm text-green-800 flex items-center justify-between">
+            <span>
+              Ya tienes un pedido para hoy: <strong>{todayOrder.order_code}</strong>
+            </span>
+            <Link
+              href={`/employee/orders/${todayOrder.id}`}
+              className="text-green-700 underline hover:text-green-800"
+            >
+              Ver pedido
+            </Link>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Status Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
@@ -45,7 +66,7 @@ export default async function EmployeeDashboard() {
           <CardContent>
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-orange-600" />
-              <p className="text-2xl font-bold">Próximamente</p>
+              <p className="text-2xl font-bold">Disponible</p>
             </div>
           </CardContent>
         </Card>
@@ -73,24 +94,44 @@ export default async function EmployeeDashboard() {
         </Card>
       </div>
 
-      {/* Coming Soon Notice */}
+      {/* Call to Action */}
+      {!todayOrder && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardHeader>
+            <CardTitle className="text-orange-900">¿Listo para pedir?</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-700 mb-4">
+              Ve al menú del día, selecciona tus platillos favoritos y confirma tu pedido.
+            </p>
+            <Link href="/employee/menu">
+              <Button className="bg-orange-600 hover:bg-orange-700">
+                Ver Menú del Día
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Quick Actions */}
       <Card>
         <CardHeader>
-          <CardTitle>Sistema de Pedidos</CardTitle>
+          <CardTitle>Acciones Rápidas</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-gray-600">
-            El módulo de pedidos para empleados está en desarrollo. Próximamente podrás:
-          </p>
-          <ul className="list-disc list-inside space-y-2 text-gray-600">
-            <li>Ver el menú del día con fotos y descripciones</li>
-            <li>Seleccionar tus platillos, bebidas y postres</li>
-            <li>Ver el historial de tus pedidos</li>
-            <li>Modificar tu pedido antes de las 11:30 AM</li>
-          </ul>
-          <Button disabled className="mt-4">
-            Pedidos Disponibles Próximamente
-          </Button>
+        <CardContent className="space-y-3">
+          <Link href="/employee/menu" className="block">
+            <Button variant="outline" className="w-full justify-between">
+              Ver Menú del Día
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </Link>
+          <Link href="/employee/orders" className="block">
+            <Button variant="outline" className="w-full justify-between">
+              Mis Pedidos
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </Link>
         </CardContent>
       </Card>
     </div>

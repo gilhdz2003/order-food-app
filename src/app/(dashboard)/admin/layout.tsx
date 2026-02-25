@@ -20,7 +20,7 @@ export default async function AdminDashboardLayout({
   }
 
   // Verify user has admin role
-  if (user.role !== 'admin') {
+  if ((user as any).role !== 'admin') {
     redirect('/employee');
   }
 

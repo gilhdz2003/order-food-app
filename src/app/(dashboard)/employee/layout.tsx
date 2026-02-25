@@ -4,6 +4,7 @@
 
 import { DashboardHeader } from '@/components/layouts/dashboard-header';
 import { DashboardSidebar } from '@/components/layouts/dashboard-sidebar';
+import { CartProvider } from '@/contexts/CartContext';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/supabase/actions';
 
@@ -54,13 +55,15 @@ export default async function EmployeeLayout({
   ];
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <DashboardSidebar user={user} navigation={navigation} />
-      <main className="flex-1">
-        <div className="p-6">
-          {children}
-        </div>
-      </main>
-    </div>
+    <CartProvider>
+      <div className="flex min-h-screen bg-gray-50">
+        <DashboardSidebar user={user} navigation={navigation} />
+        <main className="flex-1">
+          <div className="p-6">
+            {children}
+          </div>
+        </main>
+      </div>
+    </CartProvider>
   );
 }

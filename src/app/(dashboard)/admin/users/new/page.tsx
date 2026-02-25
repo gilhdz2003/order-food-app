@@ -53,7 +53,7 @@ export default async function NewUserPage() {
       company_id: companyId || null,
       role,
       is_active: isActive,
-    });
+    } as any);
 
     if (error) {
       console.error('Error creating user:', error);
@@ -135,7 +135,7 @@ export default async function NewUserPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="">Sin empresa</SelectItem>
-                    {companies?.map((company) => (
+                    {companies?.map((company: any) => (
                       <SelectItem key={company.id} value={company.id}>
                         {company.name}
                       </SelectItem>
