@@ -315,6 +315,7 @@ export interface OrderWithItems extends Order {
   items?: (OrderItem & { dish: Dish })[];
   user?: User;
   menu?: Menu;
+  company?: Company;
 }
 
 export interface DishWithMenu extends Dish {

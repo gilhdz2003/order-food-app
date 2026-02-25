@@ -19,8 +19,12 @@ export default async function EmployeeLayout({
     redirect('/login');
   }
 
-  // Employee-only route
-  if (user.role !== 'empleado' && user.role !== 'admin') {
+  // Employee-only route (redirect comanda_user to /comanda)
+  const userRole = (user as any).role;
+  if (userRole === 'comanda_user') {
+    redirect('/comanda');
+  }
+  if (userRole !== 'empleado' && userRole !== 'admin') {
     redirect('/login');
   }
 

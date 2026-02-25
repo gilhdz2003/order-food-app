@@ -89,8 +89,8 @@ export async function middleware(request: NextRequest) {
         .eq('id', user.id)
         .single();
 
-      if (userData && userData.is_active) {
-        const dashboardRoute = getDashboardForRole(userData.role);
+      if (userData && (userData as any).is_active) {
+        const dashboardRoute = getDashboardForRole((userData as any).role);
         return NextResponse.redirect(new URL(dashboardRoute, request.url));
       }
     }
@@ -125,7 +125,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Redirect to login if user is not active
-  if (!userData.is_active) {
+  if (!(userData as any).is_active) {
     const redirectUrl = new URL('/login', request.url);
     redirectUrl.searchParams.set('error', 'account_inactive');
     return NextResponse.redirect(redirectUrl);
@@ -133,9 +133,9 @@ export async function middleware(request: NextRequest) {
 
   // Check role-based access
   for (const [route, allowedRoles] of Object.entries(ROLE_ROUTES)) {
-    if (pathname.startsWith(route) && !allowedRoles.includes(userData.role)) {
+    if (pathname.startsWith(route) && !allowedRoles.includes((userData as any).role)) {
       // User doesn't have required role, redirect to their dashboard
-      const dashboardRoute = getDashboardForRole(userData.role);
+      const dashboardRoute = getDashboardForRole((userData as any).role);
       return NextResponse.redirect(new URL(dashboardRoute, request.url));
     }
   }

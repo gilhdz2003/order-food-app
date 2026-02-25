@@ -9,7 +9,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient, createAdminClient } from './server';
 import { canEditOrder } from '@/lib/utils/order';
-import type { User } from '@/types';
+import type { User, OrderStatus } from '@/types';
 
 /**
  * Sign in with Google OAuth
@@ -678,5 +678,217 @@ export async function cancelOrder(orderId: string) {
 
   revalidatePath('/employee/orders', 'page');
   revalidatePath('/employee', 'page');
+  return { success: true };
+}
+
+// ============================================================================
+// COMANDA SERVER ACTIONS
+// ============================================================================
+
+/**
+ * Get today's orders for Comanda (Kitchen view)
+ * Returns all orders from today with full details
+ */
+export async function getComandaOrders() {
+  const supabase = await createClient();
+
+  // Get today's date in Mexico City timezone
+  const today = new Date();
+  const mexicoCityOffset = 6;
+  const localDate = new Date(today.getTime() - mexicoCityOffset * 60 * 60 * 1000);
+  const todayStr = localDate.toISOString().split('T')[0];
+
+  const { data, error } = await supabase
+    .from('orders')
+    .select(`
+      *,
+      user:users!inner (
+        id,
+        full_name,
+        email,
+        company_id
+      ),
+      company:companies!inner (
+        id,
+        name
+      ),
+      items:order_items!inner (
+        id,
+        quantity,
+        price_at_order,
+        dish:dishes!inner (
+          id,
+          name,
+          category
+        )
+      )
+    `)
+    .gte('created_at', todayStr)
+    .order('status', { ascending: true })
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching comanda orders:', error);
+    return [];
+  }
+
+  return data as any;
+}
+
+/**
+ * Valid status transitions
+ */
+const validTransitions: Record<string, string[]> = {
+  pendiente: ['confirmado', 'cancelado'],
+  confirmado: ['en_preparacion'],
+  en_preparacion: ['listo'],
+  listo: ['entregado'],
+  entregado: [], // Terminal state - no transitions
+  cancelado: [], // Terminal state - no transitions
+};
+
+/**
+ * Check if status transition is valid
+ */
+function isValidTransition(currentStatus: string, newStatus: string): boolean {
+  const allowed = validTransitions[currentStatus] || [];
+  return allowed.includes(newStatus);
+}
+
+/**
+ * Update order status
+ */
+export async function updateOrderStatus(orderId: string, newStatus: OrderStatus) {
+  const user = await requireAuth();
+
+  // Use admin client for status updates
+  const supabase = await createAdminClient();
+
+  // Get current order
+  const { data: order } = await supabase
+    .from('orders')
+    .select('status')
+    .eq('id', orderId)
+    .single();
+
+  if (!order) {
+    return { error: 'Pedido no encontrado.' };
+  }
+
+  // Validate transition
+  if (!isValidTransition(order.status, newStatus)) {
+    return {
+      error: `No puedes cambiar de "${order.status}" a "${newStatus}". Transición inválida.`,
+    };
+  }
+
+  // Update status
+  const updateData: any = {
+    status: newStatus,
+    updated_at: new Date().toISOString(),
+  };
+
+  // If marking as delivered, set delivered_at
+  if (newStatus === 'entregado') {
+    updateData.delivered_at = new Date().toISOString();
+  }
+
+  const { error } = await supabase
+    .from('orders')
+    .update(updateData)
+    .eq('id', orderId);
+
+  if (error) {
+    console.error('Error updating order status:', error);
+    return { error: error.message };
+  }
+
+  revalidatePath('/comanda', 'page');
+  return { success: true };
+}
+
+/**
+ * Mark order as delivered (shortcut for listo → entregado)
+ */
+export async function markOrderDelivered(orderId: string) {
+  const supabase = await createAdminClient();
+
+  const { data: order } = await supabase
+    .from('orders')
+    .select('status')
+    .eq('id', orderId)
+    .single();
+
+  if (!order) {
+    return { error: 'Pedido no encontrado.' };
+  }
+
+  if (order.status !== 'listo') {
+    return { error: 'Solo pedidos en estado "listo" pueden marcarse como entregados.' };
+  }
+
+  return updateOrderStatus(orderId, 'entregado');
+}
+
+/**
+ * Cancel order from Comanda view
+ * Only allowed from pendiente or confirmado status
+ */
+export async function cancelOrderFromComanda(orderId: string) {
+  const user = await requireAuth();
+
+  // Use admin client
+  const supabase = await createAdminClient();
+
+  // Get current order
+  const { data: order } = await supabase
+    .from('orders')
+    .select('status, user_id')
+    .eq('id', orderId)
+    .single();
+
+  if (!order) {
+    return { error: 'Pedido no encontrado.' };
+  }
+
+  // Only allow cancellation from pendiente or confirmado
+  if (order.status !== 'pendiente' && order.status !== 'confirmado') {
+    return {
+      error: `Solo pedidos en estado "pendiente" o "confirmado" pueden cancelarse. Estado actual: ${order.status}`,
+    };
+  }
+
+  // Get order items to restore availability
+  const { data: items } = await supabase
+    .from('order_items')
+    .select('dish_id, quantity')
+    .eq('order_id', orderId);
+
+  if (items) {
+    for (const item of items) {
+      // Increment availability (simple SQL update)
+      await supabase.rpc('increment_dish_availability', {
+        p_dish_id: item.dish_id,
+        p_quantity: item.quantity,
+      });
+    }
+  }
+
+  // Update status to cancelled
+  const { error } = await supabase
+    .from('orders')
+    .update({
+      status: 'cancelado',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', orderId);
+
+  if (error) {
+    console.error('Error cancelling order:', error);
+    return { error: error.message };
+  }
+
+  revalidatePath('/comanda', 'page');
+  revalidatePath('/employee/orders', 'page');
   return { success: true };
 }

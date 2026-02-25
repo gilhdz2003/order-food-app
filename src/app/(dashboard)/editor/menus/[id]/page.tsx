@@ -301,8 +301,8 @@ export default async function EditMenuPage({ params }: PageProps) {
                                 </p>
                               )}
                             </div>
-                            <Badge className={getCategoryColor(dish.category)}>
-                              {categoryLabels[dish.category]}
+                            <Badge className={getCategoryColor(dish.category as DishCategory)}>
+                              {categoryLabels[dish.category as DishCategory]}
                             </Badge>
                           </div>
                           <div className="mt-2 flex items-center space-x-4 text-sm">

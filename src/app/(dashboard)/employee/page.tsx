@@ -14,7 +14,7 @@ import Link from 'next/link';
 
 export default async function EmployeeDashboard() {
   const user = await getCurrentUser();
-  const todayOrder = await getTodayOrder();
+  const todayOrder = await getTodayOrder() as any;
 
   return (
     <div className="space-y-6">

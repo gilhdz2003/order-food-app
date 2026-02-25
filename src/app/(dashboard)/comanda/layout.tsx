@@ -1,14 +1,15 @@
 /**
- * Editor Dashboard Layout
+ * Comanda Dashboard Layout
  *
- * Layout for editor menu dashboard pages
+ * Layout for the Comanda (Kitchen) dashboard.
+ * Only accessible by users with 'comanda_user' role.
  */
 
 import { getCurrentUser } from '@/lib/supabase/actions';
 import { DashboardSidebar } from '@/components/layouts/dashboard-sidebar';
 import { redirect } from 'next/navigation';
 
-export default async function EditorDashboardLayout({
+export default async function ComandaDashboardLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -19,31 +20,18 @@ export default async function EditorDashboardLayout({
     redirect('/login');
   }
 
-  // Verify user has editor_menu or admin role (redirect comanda_user to /comanda)
-  const userRole = (user as any).role;
-  if (userRole === 'comanda_user') {
-    redirect('/comanda');
-  }
-  if (userRole !== 'editor_menu' && userRole !== 'admin') {
+  // Verify user has comanda_user role
+  if ((user as any).role !== 'comanda_user' && (user as any).role !== 'admin') {
     redirect('/employee');
   }
 
   const navigation = [
     {
-      name: 'Mis Menús',
-      href: '/editor',
+      name: 'Comanda',
+      href: '/comanda',
       icon: (
         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-        </svg>
-      ),
-    },
-    {
-      name: 'Crear Menú',
-      href: '/editor/new',
-      icon: (
-        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
         </svg>
       ),
     },

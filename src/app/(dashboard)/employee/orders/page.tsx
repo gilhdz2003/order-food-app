@@ -7,7 +7,6 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { DashboardHeader } from '@/components/layouts/dashboard-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -139,7 +138,10 @@ export default function EmployeeOrdersPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <DashboardHeader title="Mis Pedidos" subtitle="Historial de tus pedidos" />
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Mis Pedidos</h1>
+          <p className="text-sm text-gray-600 mt-1">Historial de tus pedidos</p>
+        </div>
         <div className="flex justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600" />
         </div>
@@ -149,10 +151,10 @@ export default function EmployeeOrdersPage() {
 
   return (
     <div className="space-y-6">
-      <DashboardHeader
-        title="Mis Pedidos"
-        subtitle="Historial de tus pedidos"
-      />
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Mis Pedidos</h1>
+        <p className="text-sm text-gray-600 mt-1">Historial de tus pedidos</p>
+      </div>
 
       {orders.length === 0 ? (
         <Alert>

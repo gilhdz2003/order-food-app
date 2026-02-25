@@ -7,7 +7,6 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { DashboardHeader } from '@/components/layouts/dashboard-header';
 import { MenuGrid } from '@/components/menu/menu-grid';
 import { CartFloating } from '@/components/orders/cart-floating';
 import { ConfirmOrderDialog } from '@/components/orders/confirm-order-dialog';
@@ -38,7 +37,7 @@ export default function EmployeeMenuPage() {
   const loadMenu = async () => {
     try {
       setIsLoading(true);
-      const data = await getTodayMenu();
+      const data = await getTodayMenu() as any;
       if (data) {
         setMenu(data);
         setDishes(data.dishes || []);
@@ -111,10 +110,10 @@ export default function EmployeeMenuPage() {
 
   return (
     <div className="space-y-6">
-      <DashboardHeader
-        title="Menú del Día"
-        subtitle="Selecciona tus platillos y realiza tu pedido"
-      />
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Menú del Día</h1>
+        <p className="text-sm text-gray-600 mt-1">Selecciona tus platillos y realiza tu pedido</p>
+      </div>
 
       {/* Today's Order Banner */}
       {todayOrder && (
